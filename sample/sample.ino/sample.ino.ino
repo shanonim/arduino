@@ -10,17 +10,22 @@
 #define NOTE_B4 494
 #define NOTE_C5 523
 
+int noteArray[] = {
+  NOTE_C4,
+  NOTE_D4,
+  NOTE_E4,
+  NOTE_F4,
+  NOTE_G4,
+  NOTE_A4,
+  NOTE_B4,
+  NOTE_C5
+};
+const int arrayNum = sizeof noteArray / 2;
+
 void setup() {
   pinMode(LED_PIN, OUTPUT);
   pinMode(SOUND_PIN, OUTPUT);
   Serial.begin(9600);
-
-  int noteArray[] = {
-    NOTE_C4,
-    NOTE_D4,
-    NOTE_E4
-  }
-  const int arrayNum = sizeof(noteArray) / noteArray[0];
 }
 
 void loop() {
@@ -36,7 +41,7 @@ void loop() {
       // sound
       digitalWrite(SOUND_PIN, HIGH);
       for (int i = 0; i < arrayNum; i++) {
-        tone(SOUND_PIN, arrayNum[i]);
+        tone(SOUND_PIN, noteArray[i], SOUND_LENGTH);
         delay(SOUND_LENGTH);
       }
       break;
