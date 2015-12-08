@@ -2,31 +2,42 @@ var five = require('johnny-five');
 var MilkCocoa = require('milkcocoa');
 var SlackNode = require('slack-node');
 var SlackClient = require('slack-client');
+var info = require('./info.js');
 
 // slack
-var apiToken = 'xoxb-15928680374-sxC1yCKlO9Em14bP9hgqPzwP';
+var slackToken = info.slackToken();
 var autoReconnect = true;
 var autoMark = true;
-var slackNode = new SlackNode(apiToken);
-var slackClient = new SlackClient(apiToken, autoReconnect, autoMark);
+var slackNode = new SlackNode(slackToken);
+var slackClient = new SlackClient(slackToken, autoReconnect, autoMark);
+var botName = info.botName();
 
 // Milkcocoa
-var milkcocoa = new MilkCocoa('flagihq4kyln.mlkcca.com');
+var milkcocoa = new MilkCocoa(info.milkcocoaToken());
 var ds = milkcocoa.dataStore('brightness');
 
 // arduino
 var board = new five.Board();
-// var led = new five.Led(13);
 var sensor;
 var isDark = false;
 var isLight = false;
 
+// message pattern
+var msgWelcome = [
+    'おかえりにゃー！',
+    'あっ！帰ってきた！おつかれさま！',
+    'おかえりなさい、あっ、夜ご飯はラーメンにする？？'
+];
+var msgRamen = [
+    'わぁいラーメン！凛ラーメン大好き！',
+    '何ラーメンにする？？凛は味噌ラーメンが食べたいなぁ・・。'
+];
+
 board.on('ready', function() {
-    // LED ON
-    // led.on();
+    var led = new five.Led(13);
     //slackに起動通知
     slackNode.api('chat.postMessage', {
-        text: '電源が入ったよー！',
+        text: '電源が入ったよ！',
         channel: '#iot-room',
         as_user: true
     }, function(err, response) {
@@ -44,7 +55,7 @@ board.on('ready', function() {
     });
     // 照度が一定値を上回ったらLED ON
     sensor.within([401, 1000], function() {
-        // led.on();
+        led.on();
         //slackに通知
         if (!isLight) {
             slackNode.api('chat.postMessage', {
@@ -60,7 +71,7 @@ board.on('ready', function() {
     });
     // 照度が一定値を下回ったらLED OFF
     sensor.within([0, 400], function() {
-        // led.off();
+        led.off();
         //slackに通知
         if (!isDark) {
             slackNode.api('chat.postMessage', {
@@ -76,16 +87,45 @@ board.on('ready', function() {
     });
 });
 
+slackClient.login();
+
 slackClient.on('open', function() {
     console.log('open');
-});
-
-slackClient.on('message', function(message) {
-    console.log(message);
 });
 
 slackClient.on('error', function(error) {
     console.error('Error: %s', error);
 });
 
-slackClient.login();
+slackClient.on('message', function(message) {
+    var text = message.text;
+    var user = message.user;
+    if (user == botName) {
+        var isBotMsg = true;
+    }
+    if (!isBotMsg) {
+        if (/ただいま/.test(text)) {
+            slackNode.api('chat.postMessage', {
+                text: randMessage(msgWelcome),
+                channel: '#iot-room',
+                as_user: true
+            }, function(err, response) {
+                console.log(response);
+            });
+        }
+        if (/ラーメン/.test(text)) {
+            slackNode.api('chat.postMessage', {
+                text: randMessage(msgRamen),
+                channel: '#iot-room',
+                as_user: true
+            }, function(err, response) {
+                console.log(response);
+            });
+        }
+    }
+});
+
+function randMessage(array) {
+    var rand = array[Math.floor(Math.random() * array.length)];
+    return rand;
+}
