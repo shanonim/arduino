@@ -14,7 +14,7 @@ var botName = info.botName();
 
 // Milkcocoa
 var milkcocoa = new MilkCocoa(info.milkcocoaToken());
-var ds = milkcocoa.dataStore('heatbeat');
+var ds = milkcocoa.dataStore('heartbeat');
 
 // arduino
 var board = new five.Board();
@@ -35,29 +35,13 @@ var pulse = false;
 
 board.on('ready', function() {
     var led = new five.Led(13);
-    //slackに起動通知
-    // slackNode.api('chat.postMessage', {
-    //     text: '電源が入ったよ！',
-    //     channel: '#iot-room',
-    //     as_user: true
-    // }, function(err, response) {
-    //     console.log(response);
-    // });
-    // アナログセンサ設定
     sensor = new five.Sensor( {
         pin: 'A0',
         freq: 2
     });
-    // Milkcocoaへのデータ送信
     sensor.on('data', function() {
-        // ds.push({'heatbeat' : this.value});
         signal = this.value;
-        // console.log('signal:', this.value);
-
         sampleCounter += 2;
-        // console.log('sampleCounter: %d', sampleCounter);
-        // console.log('lastBeatTime: %d', lastBeatTime);
-
         var n = sampleCounter - lastBeatTime;
 
         if (signal < thresh && n > (ibi / 5) * 3) {
@@ -80,15 +64,18 @@ board.on('ready', function() {
                 for (var i = 0; i <= 8; i++) {
                     rate[i] = rate[i + 1];
                     runnningTotal += rate[i];
-                    // console.log('rate:', rate[i]);
                 }
 
                 rate[9] = ibi;
                 runnningTotal += rate[9];
                 runnningTotal /= 10;
                 bpm = 60000 / runnningTotal;
-
+                ds.push({'heartbeat' : bpm});
                 console.log('BPM:', bpm);
+
+                led.on();
+            } else {
+                led.off();
             }
         }
 
